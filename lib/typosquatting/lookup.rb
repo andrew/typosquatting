@@ -52,13 +52,40 @@ module Typosquatting
       response&.map { |r| Registry.new(r) } || []
     end
 
-    def list_names(registry:, prefix: nil, postfix: nil)
+    def list_names(registry:, prefix: nil, postfix: nil, critical: nil, page: nil, per_page: nil)
       params = []
       params << "prefix=#{URI.encode_www_form_component(prefix)}" if prefix
       params << "postfix=#{URI.encode_www_form_component(postfix)}" if postfix
+      params << "critical=true" if critical
+      params << "page=#{page}" if page
+      params << "per_page=#{per_page}" if per_page
       query = params.empty? ? "" : "?#{params.join("&")}"
 
       fetch("/registries/#{URI.encode_www_form_component(registry)}/package_names#{query}") || []
+    end
+
+    def list_all_names(registry:, prefix: nil, postfix: nil, critical: nil, per_page: 100)
+      all_names = []
+      page = 1
+
+      loop do
+        names = list_names(
+          registry: registry,
+          prefix: prefix,
+          postfix: postfix,
+          critical: critical,
+          page: page,
+          per_page: per_page
+        )
+        break if names.empty?
+
+        all_names.concat(names)
+        break if names.length < per_page
+
+        page += 1
+      end
+
+      all_names
     end
 
     def discover(package_name, max_distance: 2)

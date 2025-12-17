@@ -129,6 +129,75 @@ class TestLookup < Minitest::Test
     assert_equal 2, names.length
   end
 
+  def test_list_names_with_critical_filter
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?critical=true")
+      .to_return(
+        status: 200,
+        body: ["requests", "django", "flask"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_names(registry: "pypi.org", critical: true)
+
+    assert_equal 3, names.length
+    assert_includes names, "requests"
+  end
+
+  def test_list_names_with_pagination
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?page=2&per_page=100")
+      .to_return(
+        status: 200,
+        body: ["package101", "package102"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_names(registry: "pypi.org", page: 2, per_page: 100)
+
+    assert_equal 2, names.length
+  end
+
+  def test_list_all_names_handles_pagination
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?critical=true&page=1&per_page=2")
+      .to_return(
+        status: 200,
+        body: ["requests", "django"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?critical=true&page=2&per_page=2")
+      .to_return(
+        status: 200,
+        body: ["flask", "numpy"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?critical=true&page=3&per_page=2")
+      .to_return(
+        status: 200,
+        body: [].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_all_names(registry: "pypi.org", critical: true, per_page: 2)
+
+    assert_equal 4, names.length
+    assert_includes names, "requests"
+    assert_includes names, "numpy"
+  end
+
+  def test_list_all_names_default_per_page
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?page=1&per_page=100")
+      .to_return(
+        status: 200,
+        body: ["requests"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_all_names(registry: "pypi.org")
+
+    assert_equal 1, names.length
+  end
+
   def test_levenshtein_distance
     assert_equal 0, @lookup.levenshtein("test", "test")
     assert_equal 1, @lookup.levenshtein("test", "tests")
