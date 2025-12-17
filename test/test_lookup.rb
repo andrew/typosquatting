@@ -87,4 +87,100 @@ class TestLookup < Minitest::Test
 
     assert_requested(:get, "https://packages.ecosyste.ms/api/v1/packages/lookup?purl=pkg:pypi/test")
   end
+
+  def test_list_names_with_prefix
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?prefix=req")
+      .to_return(
+        status: 200,
+        body: ["requests", "reqests", "request"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_names(registry: "pypi.org", prefix: "req")
+
+    assert_equal 3, names.length
+    assert_includes names, "requests"
+  end
+
+  def test_list_names_with_postfix
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?postfix=ests")
+      .to_return(
+        status: 200,
+        body: ["requests", "reqests", "tests"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_names(registry: "pypi.org", postfix: "ests")
+
+    assert_equal 3, names.length
+    assert_includes names, "requests"
+  end
+
+  def test_list_names_with_both_prefix_and_postfix
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?prefix=req&postfix=ests")
+      .to_return(
+        status: 200,
+        body: ["requests", "reqests"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    names = @lookup.list_names(registry: "pypi.org", prefix: "req", postfix: "ests")
+
+    assert_equal 2, names.length
+  end
+
+  def test_levenshtein_distance
+    assert_equal 0, @lookup.levenshtein("test", "test")
+    assert_equal 1, @lookup.levenshtein("test", "tests")
+    assert_equal 1, @lookup.levenshtein("test", "tst")
+    assert_equal 1, @lookup.levenshtein("test", "tezt")
+    assert_equal 1, @lookup.levenshtein("test", "best")
+    assert_equal 2, @lookup.levenshtein("requests", "reqeusts")
+  end
+
+  def test_discover_returns_similar_packages
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries?ecosystem=pypi")
+      .to_return(
+        status: 200,
+        body: [{ "name" => "pypi.org" }].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?prefix=req")
+      .to_return(
+        status: 200,
+        body: ["requests", "reqests", "request", "requets", "require"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    results = @lookup.discover("requests", max_distance: 2)
+
+    assert results.length > 0
+    assert results.all? { |r| r.distance <= 2 }
+    assert results.none? { |r| r.name == "requests" }
+    assert results.any? { |r| r.name == "reqests" }
+  end
+
+  def test_check_with_variants_finds_existing
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries?ecosystem=pypi")
+      .to_return(
+        status: 200,
+        body: [{ "name" => "pypi.org" }].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/registries/pypi.org/package_names?prefix=req")
+      .to_return(
+        status: 200,
+        body: ["requests", "reqests", "request"].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    variants = ["reqests", "requets", "rquests"]
+    results = @lookup.check_with_variants("requests", variants)
+
+    assert_equal 3, results.length
+    assert results.find { |r| r.name == "reqests" }.exists?
+    refute results.find { |r| r.name == "requets" }.exists?
+  end
 end

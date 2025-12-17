@@ -69,6 +69,12 @@ typosquatting check requests -e pypi -f json
 
 # List available algorithms
 typosquatting algorithms
+
+# Discover existing packages similar to a target (by edit distance)
+typosquatting discover requests -e pypi
+
+# Discover with generated variants check
+typosquatting discover requests -e pypi --with-variants
 ```
 
 ## Example Output
@@ -203,6 +209,34 @@ The checker looks for packages in your SBOM that have names similar to existing 
 Package lookups use the [ecosyste.ms](https://packages.ecosyste.ms) API. Requests are made in parallel (10 concurrent by default) to improve performance.
 
 Be mindful when checking many packages. The `--dry-run` flag shows what would be checked without making API calls.
+
+### packages.ecosyste.ms API
+
+The package_names endpoint can help identify potential typosquats by searching for packages with similar prefixes or postfixes to popular package names.
+
+```
+GET /api/v1/registries/{registry}/package_names
+```
+
+**Parameters:**
+- `prefix` - filter by package names starting with string (case insensitive)
+- `postfix` - filter by package names ending with string (case insensitive)
+- `page`, `per_page` - pagination
+- `sort`, `order` - sorting
+
+**Examples:**
+```
+# Find RubyGems packages ending in "ails" (potential "rails" typosquats)
+https://packages.ecosyste.ms/api/v1/registries/rubygems.org/package_names?postfix=ails
+
+# Find RubyGems packages starting with "rai" (potential "rails" typosquats)
+https://packages.ecosyste.ms/api/v1/registries/rubygems.org/package_names?prefix=rai
+
+# Find npm packages starting with "reac" (potential "react" typosquats)
+https://packages.ecosyste.ms/api/v1/registries/npmjs.org/package_names?prefix=reac
+```
+
+Full API documentation: [packages.ecosyste.ms/docs](https://packages.ecosyste.ms/docs)
 
 ## Dataset
 

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    typosquatting (0.2.0)
+    typosquatting (0.3.0)
       purl (~> 1.6)
       sbom (~> 0.2)
 
@@ -29,6 +29,7 @@ GEM
       regexp_parser (~> 2.0)
       simpleidn (~> 0.2)
     minitest (5.27.0)
+    openssl (3.3.2)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -66,6 +67,7 @@ PLATFORMS
 DEPENDENCIES
   irb
   minitest (~> 5.16)
+  openssl (~> 3.3.1)
   rake (~> 13.0)
   typosquatting!
   webmock (~> 3.0)
@@ -82,6 +84,7 @@ CHECKSUMS
   irb (1.16.0) sha256=2abe56c9ac947cdcb2f150572904ba798c1e93c890c256f8429981a7675b0806
   json_schemer (2.5.0) sha256=2f01fb4cce721a4e08dd068fc2030cffd0702a7f333f1ea2be6e8991f00ae396
   minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
+  openssl (3.3.2) sha256=7f4e01215dc9c4be1fca71d692406be3e6340b39c1f71a47fea9c497decd0f6c
   pp (0.6.3) sha256=2951d514450b93ccfeb1df7d021cae0da16e0a7f95ee1e2273719669d0ab9df6
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
   psych (5.3.1) sha256=eb7a57cef10c9d70173ff74e739d843ac3b2c019a003de48447b2963d81b1974
@@ -96,7 +99,7 @@ CHECKSUMS
   simpleidn (0.2.3) sha256=08ce96f03fa1605286be22651ba0fc9c0b2d6272c9b27a260bc88be05b0d2c29
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
-  typosquatting (0.2.0)
+  typosquatting (0.3.0)
   webmock (3.26.1) sha256=4f696fb57c90a827c20aadb2d4f9058bbff10f7f043bd0d4c3f58791143b1cd7
 
 BUNDLED WITH

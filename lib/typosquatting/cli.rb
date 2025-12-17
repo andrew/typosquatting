@@ -16,6 +16,8 @@ module Typosquatting
         generate(args)
       when "check"
         check(args)
+      when "discover"
+        discover(args)
       when "confusion"
         confusion(args)
       when "sbom"
@@ -99,6 +101,39 @@ module Typosquatting
       results = results.select { |r| r[:result].exists? } if options[:existing_only]
 
       output_check_results(results, options)
+    end
+
+    def discover(args)
+      options = { format: "text", max_distance: 2 }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: typosquatting discover PACKAGE -e ECOSYSTEM [options]"
+        opts.on("-e", "--ecosystem ECOSYSTEM", "Package ecosystem (required)") { |v| options[:ecosystem] = v }
+        opts.on("-f", "--format FORMAT", "Output format (text, json)") { |v| options[:format] = v }
+        opts.on("-d", "--distance N", Integer, "Maximum edit distance (default: 2)") { |v| options[:max_distance] = v }
+        opts.on("--with-variants", "Also show which generated variants exist") { options[:with_variants] = true }
+      end
+      parser.parse!(args)
+
+      package = args.shift
+      unless package && options[:ecosystem]
+        $stderr.puts "Error: Package name and ecosystem required"
+        $stderr.puts parser
+        exit 1
+      end
+
+      lookup = Lookup.new(ecosystem: options[:ecosystem])
+
+      $stderr.puts "Discovering similar packages to #{package}..." if $stderr.tty?
+      results = lookup.discover(package, max_distance: options[:max_distance])
+
+      if options[:with_variants]
+        generator = Generator.new(ecosystem: options[:ecosystem])
+        variants = generator.generate(package)
+        variant_results = lookup.check_with_variants(package, variants)
+        existing_variants = variant_results.select(&:exists?)
+      end
+
+      output_discover_results(results, existing_variants, options)
     end
 
     def confusion(args)
@@ -212,6 +247,7 @@ module Typosquatting
       puts "Commands:"
       puts "  generate PACKAGE -e ECOSYSTEM    Generate typosquat variants"
       puts "  check PACKAGE -e ECOSYSTEM       Check which variants exist"
+      puts "  discover PACKAGE -e ECOSYSTEM    Find similar packages by edit distance"
       puts "  confusion PACKAGE -e ECOSYSTEM   Check for dependency confusion"
       puts "  sbom FILE                        Check SBOM for potential typosquats"
       puts "  ecosystems                       List supported ecosystems"
@@ -222,6 +258,7 @@ module Typosquatting
       puts "Examples:"
       puts "  typosquatting generate requests -e pypi"
       puts "  typosquatting check requests -e pypi --existing-only"
+      puts "  typosquatting discover rails -e gem --with-variants"
       puts "  typosquatting confusion my-package -e maven"
       puts "  typosquatting sbom bom.json"
     end
@@ -377,6 +414,43 @@ module Typosquatting
         end
 
         puts "Found #{results.length} suspicious package(s)"
+      end
+    end
+
+    def output_discover_results(discovered, existing_variants, options)
+      case options[:format]
+      when "json"
+        data = {
+          discovered: discovered.map(&:to_h),
+          existing_variants: existing_variants&.map(&:to_h)
+        }.compact
+        puts JSON.pretty_generate(data)
+      else
+        if discovered.empty? && (existing_variants.nil? || existing_variants.empty?)
+          puts "No similar packages found"
+          return
+        end
+
+        if discovered.any?
+          puts "Similar packages found (by edit distance):"
+          puts ""
+          discovered.each do |result|
+            puts "  #{result.name} (distance: #{result.distance})"
+          end
+          puts ""
+        end
+
+        if existing_variants&.any?
+          puts "Generated variants that exist:"
+          puts ""
+          existing_variants.each do |result|
+            puts "  #{result.name}"
+          end
+          puts ""
+        end
+
+        puts "Found #{discovered.length} similar package(s)"
+        puts "Found #{existing_variants.length} existing variant(s)" if existing_variants&.any?
       end
     end
   end

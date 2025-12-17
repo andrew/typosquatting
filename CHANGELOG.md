@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.3.0] - 2025-12-17
+
+- Add `discover` command to find existing similar packages by edit distance using prefix/postfix API
+
 ## [0.2.0] - 2025-12-17
 
 - Add GitHub Actions ecosystem for CI/CD workflow typosquatting detection

@@ -4,6 +4,7 @@ require "net/http"
 require "json"
 require "uri"
 require "purl"
+require "set"
 
 module Typosquatting
   class Lookup
@@ -49,6 +50,92 @@ module Typosquatting
     def registries
       response = fetch("/registries?ecosystem=#{URI.encode_www_form_component(ecosystem.purl_type)}")
       response&.map { |r| Registry.new(r) } || []
+    end
+
+    def list_names(registry:, prefix: nil, postfix: nil)
+      params = []
+      params << "prefix=#{URI.encode_www_form_component(prefix)}" if prefix
+      params << "postfix=#{URI.encode_www_form_component(postfix)}" if postfix
+      query = params.empty? ? "" : "?#{params.join("&")}"
+
+      fetch("/registries/#{URI.encode_www_form_component(registry)}/package_names#{query}") || []
+    end
+
+    def discover(package_name, max_distance: 2)
+      registry = registries.first
+      return [] unless registry
+
+      prefix = package_name[0, 3]
+      candidates = list_names(registry: registry.name, prefix: prefix)
+
+      candidates.filter_map do |candidate|
+        next if candidate == package_name
+
+        distance = levenshtein(package_name.downcase, candidate.downcase)
+        next if distance > max_distance || distance == 0
+
+        DiscoveryResult.new(
+          name: candidate,
+          target: package_name,
+          distance: distance
+        )
+      end.sort_by(&:distance)
+    end
+
+    def check_with_variants(package_name, variants)
+      registry = registries.first
+      return [] unless registry
+
+      prefix = package_name[0, 3]
+      existing = list_names(registry: registry.name, prefix: prefix)
+      existing_set = existing.map(&:downcase).to_set
+
+      variant_names = variants.map { |v| v.is_a?(String) ? v : v.name }
+
+      variant_names.filter_map do |variant|
+        exists = existing_set.include?(variant.downcase)
+        VariantCheckResult.new(
+          name: variant,
+          exists: exists
+        )
+      end
+    end
+
+    def levenshtein(s1, s2)
+      m, n = s1.length, s2.length
+      return n if m == 0
+      return m if n == 0
+
+      d = Array.new(m + 1) { |i| i }
+      x = nil
+
+      (1..n).each do |j|
+        d[0] = j
+        x = j - 1
+
+        (1..m).each do |i|
+          cost = s1[i - 1] == s2[j - 1] ? 0 : 1
+          x, d[i] = d[i], [d[i] + 1, d[i - 1] + 1, x + cost].min
+        end
+      end
+
+      d[m]
+    end
+
+    DiscoveryResult = Struct.new(:name, :target, :distance, keyword_init: true) do
+      def to_h
+        { name: name, target: target, distance: distance }
+      end
+    end
+
+    VariantCheckResult = Struct.new(:name, :exists, keyword_init: true) do
+      def exists?
+        exists
+      end
+
+      def to_h
+        { name: name, exists: exists }
+      end
     end
 
     Result = Struct.new(:name, :purl, :packages, :ecosystem, keyword_init: true) do
