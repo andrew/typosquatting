@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    typosquatting (0.1.0)
+    typosquatting (0.2.0)
       purl (~> 1.6)
       sbom (~> 0.2)
 
@@ -96,7 +96,7 @@ CHECKSUMS
   simpleidn (0.2.3) sha256=08ce96f03fa1605286be22651ba0fc9c0b2d6272c9b27a260bc88be05b0d2c29
   stringio (3.1.9) sha256=c111af13d3a73eab96a3bc2655ecf93788d13d28cb8e25c1dcbff89ace885121
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
-  typosquatting (0.1.0)
+  typosquatting (0.2.0)
   webmock (3.26.1) sha256=4f696fb57c90a827c20aadb2d4f9058bbff10f7f043bd0d4c3f58791143b1cd7
 
 BUNDLED WITH

@@ -59,6 +59,14 @@ module Typosquatting
 
         true
       end
+
+      def format_name(namespace, name)
+        if namespace
+          "#{namespace}/#{name}"
+        else
+          name
+        end
+      end
     end
 
     Base.register(Npm.new)

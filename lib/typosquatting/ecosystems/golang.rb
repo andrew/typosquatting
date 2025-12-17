@@ -49,6 +49,10 @@ module Typosquatting
 
         !!(name =~ name_pattern)
       end
+
+      def format_name(namespace, name)
+        "#{namespace}/#{name}"
+      end
     end
 
     Base.register(Golang.new)

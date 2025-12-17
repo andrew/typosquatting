@@ -2,17 +2,47 @@
 
 module Typosquatting
   class Generator
-    attr_reader :ecosystem, :algorithms
+    SHORT_NAME_THRESHOLD = 5
 
-    def initialize(ecosystem:, algorithms: nil)
+    HIGH_CONFIDENCE_ALGORITHMS = %w[
+      homoglyph
+      repetition
+      replacement
+      transposition
+    ].freeze
+
+    attr_reader :ecosystem, :algorithms, :length_filtering
+
+    def initialize(ecosystem:, algorithms: nil, length_filtering: true)
       @ecosystem = ecosystem.is_a?(String) ? Ecosystems::Base.get(ecosystem) : ecosystem
       @algorithms = algorithms || Algorithms::Base.all
+      @length_filtering = length_filtering
     end
 
     def generate(package_name)
       results = []
 
-      algorithms.each do |algorithm|
+      if ecosystem.supports_namespaces?
+        results.concat(generate_namespace_aware(package_name))
+      else
+        results.concat(generate_simple(package_name))
+      end
+
+      dedupe_by_normalised_name(results)
+    end
+
+    def algorithms_for_length(name_length)
+      return algorithms unless length_filtering
+      return algorithms if name_length >= SHORT_NAME_THRESHOLD
+
+      algorithms.select { |a| HIGH_CONFIDENCE_ALGORITHMS.include?(a.name) }
+    end
+
+    def generate_simple(package_name)
+      results = []
+      active_algorithms = algorithms_for_length(package_name.length)
+
+      active_algorithms.each do |algorithm|
         variants = algorithm.generate(package_name)
         variants.each do |variant|
           next if variant == package_name
@@ -27,7 +57,59 @@ module Typosquatting
         end
       end
 
-      dedupe_by_normalised_name(results)
+      results
+    end
+
+    def generate_namespace_aware(package_name)
+      namespace, name = ecosystem.parse_namespace(package_name)
+      results = []
+
+      return generate_simple(package_name) if namespace.nil?
+
+      namespace_algorithms = algorithms_for_length(namespace.length)
+      name_algorithms = algorithms_for_length(name.length)
+
+      namespace_algorithms.each do |algorithm|
+        namespace_variants = algorithm.generate(namespace)
+        namespace_variants.each do |ns_variant|
+          full_name = rebuild_namespaced_name(ns_variant, name)
+          next if full_name == package_name
+          next unless ecosystem.valid_name?(full_name)
+          next if same_after_normalisation?(package_name, full_name)
+
+          results << Variant.new(
+            name: full_name,
+            algorithm: algorithm.name,
+            original: package_name
+          )
+        end
+      end
+
+      name_algorithms.each do |algorithm|
+        name_variants = algorithm.generate(name)
+        name_variants.each do |name_variant|
+          full_name = rebuild_namespaced_name(namespace, name_variant)
+          next if full_name == package_name
+          next unless ecosystem.valid_name?(full_name)
+          next if same_after_normalisation?(package_name, full_name)
+
+          results << Variant.new(
+            name: full_name,
+            algorithm: algorithm.name,
+            original: package_name
+          )
+        end
+      end
+
+      results
+    end
+
+    def rebuild_namespaced_name(namespace, name)
+      if ecosystem.respond_to?(:format_name)
+        ecosystem.format_name(namespace, name)
+      else
+        "#{namespace}/#{name}"
+      end
     end
 
     Variant = Struct.new(:name, :algorithm, :original, keyword_init: true) do

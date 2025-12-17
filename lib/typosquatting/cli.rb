@@ -36,13 +36,14 @@ module Typosquatting
     end
 
     def generate(args)
-      options = { format: "text", verbose: false }
+      options = { format: "text", verbose: false, length_filtering: true }
       parser = OptionParser.new do |opts|
         opts.banner = "Usage: typosquatting generate PACKAGE -e ECOSYSTEM [options]"
         opts.on("-e", "--ecosystem ECOSYSTEM", "Package ecosystem (required)") { |v| options[:ecosystem] = v }
         opts.on("-f", "--format FORMAT", "Output format (text, json, csv)") { |v| options[:format] = v }
         opts.on("-v", "--verbose", "Show algorithm for each variant") { options[:verbose] = true }
         opts.on("-a", "--algorithms LIST", "Comma-separated list of algorithms to use") { |v| options[:algorithms] = v }
+        opts.on("--no-length-filter", "Disable length-based algorithm filtering for short names") { options[:length_filtering] = false }
       end
       parser.parse!(args)
 
@@ -55,14 +56,14 @@ module Typosquatting
 
       ecosystem = Ecosystems::Base.get(options[:ecosystem])
       algorithms = select_algorithms(options[:algorithms])
-      generator = Generator.new(ecosystem: ecosystem, algorithms: algorithms)
+      generator = Generator.new(ecosystem: ecosystem, algorithms: algorithms, length_filtering: options[:length_filtering])
       variants = generator.generate(package)
 
       output_variants(variants, options)
     end
 
     def check(args)
-      options = { format: "text", verbose: false, existing_only: false, dry_run: false }
+      options = { format: "text", verbose: false, existing_only: false, dry_run: false, length_filtering: true }
       parser = OptionParser.new do |opts|
         opts.banner = "Usage: typosquatting check PACKAGE -e ECOSYSTEM [options]"
         opts.on("-e", "--ecosystem ECOSYSTEM", "Package ecosystem (required)") { |v| options[:ecosystem] = v }
@@ -71,6 +72,7 @@ module Typosquatting
         opts.on("-a", "--algorithms LIST", "Comma-separated list of algorithms to use") { |v| options[:algorithms] = v }
         opts.on("--existing-only", "Only show packages that exist") { options[:existing_only] = true }
         opts.on("--dry-run", "Show variants without making API calls") { options[:dry_run] = true }
+        opts.on("--no-length-filter", "Disable length-based algorithm filtering for short names") { options[:length_filtering] = false }
       end
       parser.parse!(args)
 
@@ -83,7 +85,7 @@ module Typosquatting
 
       ecosystem = Ecosystems::Base.get(options[:ecosystem])
       algorithms = select_algorithms(options[:algorithms])
-      generator = Generator.new(ecosystem: ecosystem, algorithms: algorithms)
+      generator = Generator.new(ecosystem: ecosystem, algorithms: algorithms, length_filtering: options[:length_filtering])
       variants = generator.generate(package)
 
       if options[:dry_run]
@@ -177,16 +179,17 @@ module Typosquatting
     def ecosystems
       puts "Supported ecosystems:"
       puts ""
-      puts "  pypi      - Python Package Index"
-      puts "  npm       - Node Package Manager"
-      puts "  gem       - RubyGems"
-      puts "  cargo     - Rust packages"
-      puts "  golang    - Go modules"
-      puts "  maven     - Java/JVM packages"
-      puts "  nuget     - .NET packages"
-      puts "  composer  - PHP packages"
-      puts "  hex       - Erlang/Elixir packages"
-      puts "  pub       - Dart packages"
+      puts "  pypi           - Python Package Index"
+      puts "  npm            - Node Package Manager"
+      puts "  gem            - RubyGems"
+      puts "  cargo          - Rust packages"
+      puts "  golang         - Go modules"
+      puts "  maven          - Java/JVM packages"
+      puts "  nuget          - .NET packages"
+      puts "  composer       - PHP packages"
+      puts "  hex            - Erlang/Elixir packages"
+      puts "  pub            - Dart packages"
+      puts "  github_actions - GitHub Actions"
     end
 
     def algorithms

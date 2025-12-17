@@ -2,7 +2,7 @@
 
 Detect potential typosquatting packages across package ecosystems. Generate typosquat variants of package names and check if they exist on package registries.
 
-Supports PyPI, npm, RubyGems, Cargo, Go, Maven, NuGet, Composer, Hex, and Pub.
+Supports PyPI, npm, RubyGems, Cargo, Go, Maven, NuGet, Composer, Hex, Pub, and GitHub Actions.
 
 ## When to use this
 
@@ -16,6 +16,8 @@ This tool helps you:
 - Check if your internal package names are safe from dependency confusion
 
 False positives are common. A package named `request` isn't necessarily a typosquat of `requests`. Use the output as a starting point for investigation, not as a definitive verdict.
+
+Short package names (under 5 characters) produce more false positives because many legitimate short packages exist. By default, the generator uses only high-confidence algorithms (homoglyph, repetition, replacement, transposition) for short names. Use `--no-length-filter` to disable this and run all algorithms regardless of name length.
 
 ## Installation
 
@@ -52,6 +54,9 @@ typosquatting check requests -e pypi --dry-run
 
 # Check for dependency confusion risks
 typosquatting confusion com.company:internal-lib -e maven
+
+# Check GitHub Actions for typosquats
+typosquatting check actions/checkout -e github_actions
 
 # Check multiple packages from a file
 typosquatting confusion -e maven --file internal-packages.txt
@@ -158,6 +163,7 @@ Use these identifiers with the `-e` / `--ecosystem` flag:
 | `composer` | Packagist | No | `-` `_` `.` | `vendor/package` format |
 | `hex` | hex.pm | No | `_` | Underscore only, no hyphens |
 | `pub` | pub.dev | No | `_` | Underscore only, 2-64 chars |
+| `github_actions` | GitHub | No | `-` `_` `.` | `owner/repo` format, targets CI/CD workflows |
 
 ## Algorithms
 
@@ -177,6 +183,10 @@ Use these names with the `-a` / `--algorithms` flag (comma-separated):
 | `plural` | Singularize/pluralize | `request` -> `requests` |
 | `misspelling` | Common typos | `library` -> `libary` |
 | `numeral` | Number/word swap | `lib2` -> `libtwo` |
+| `bitflip` | Single-bit errors (bitsquatting) | `google` -> `coogle` |
+| `adjacent_insertion` | Insert adjacent keyboard key | `google` -> `googhle` |
+| `double_hit` | Replace double chars with adjacent | `google` -> `giigle` |
+| `combosquatting` | Add common package suffixes | `lodash` -> `lodash-js` |
 
 ## SBOM Support
 
@@ -193,6 +203,10 @@ The checker looks for packages in your SBOM that have names similar to existing 
 Package lookups use the [ecosyste.ms](https://packages.ecosyste.ms) API. Requests are made in parallel (10 concurrent by default) to improve performance.
 
 Be mindful when checking many packages. The `--dry-run` flag shows what would be checked without making API calls.
+
+## Dataset
+
+The [ecosyste-ms/typosquatting-dataset](https://github.com/ecosyste-ms/typosquatting-dataset) contains 143 confirmed typosquatting attacks from security research, mapping malicious packages to their targets with classification and source attribution. Useful for testing detection tools and understanding real attack patterns.
 
 ## Development
 

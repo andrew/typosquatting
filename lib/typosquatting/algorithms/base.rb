@@ -26,7 +26,11 @@ module Typosquatting
           WordOrder.new,
           Plural.new,
           Misspelling.new,
-          Numeral.new
+          Numeral.new,
+          Bitflip.new,
+          AdjacentInsertion.new,
+          DoubleHit.new,
+          Combosquatting.new
         ]
       end
     end
