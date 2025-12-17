@@ -242,6 +242,26 @@ Full API documentation: [packages.ecosyste.ms/docs](https://packages.ecosyste.ms
 
 The [ecosyste-ms/typosquatting-dataset](https://github.com/ecosyste-ms/typosquatting-dataset) contains 143 confirmed typosquatting attacks from security research, mapping malicious packages to their targets with classification and source attribution. Useful for testing detection tools and understanding real attack patterns.
 
+## Research
+
+The `research/` directory contains a script to scan "critical" packages (high OpenSSF criticality score) for potential typosquats:
+
+```bash
+# Scan critical RubyGems packages
+ruby research/critical_packages.rb rubygems.org
+
+# Scan npm
+ruby research/critical_packages.rb npmjs.org
+
+# Include all algorithms (default is high-confidence only)
+ruby research/critical_packages.rb rubygems.org --all
+
+# Limit to first N packages for testing
+ruby research/critical_packages.rb rubygems.org --limit=100
+```
+
+The script generates variants using all library algorithms, checks which exist on the registry, and outputs a CSV with download counts, creation dates, repository URLs, and package status. It filters out packages that predate the target (can't be typosquats), packages with high download ratios (likely legitimate), and flags packages that have been removed (confirmed typosquats).
+
 ## Development
 
 ```bash
