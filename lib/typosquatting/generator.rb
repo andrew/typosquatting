@@ -85,19 +85,21 @@ module Typosquatting
         end
       end
 
-      name_algorithms.each do |algorithm|
-        name_variants = algorithm.generate(name)
-        name_variants.each do |name_variant|
-          full_name = rebuild_namespaced_name(namespace, name_variant)
-          next if full_name == package_name
-          next unless ecosystem.valid_name?(full_name)
-          next if same_after_normalisation?(package_name, full_name)
+      unless ecosystem.namespace_controls_members?
+        name_algorithms.each do |algorithm|
+          name_variants = algorithm.generate(name)
+          name_variants.each do |name_variant|
+            full_name = rebuild_namespaced_name(namespace, name_variant)
+            next if full_name == package_name
+            next unless ecosystem.valid_name?(full_name)
+            next if same_after_normalisation?(package_name, full_name)
 
-          results << Variant.new(
-            name: full_name,
-            algorithm: algorithm.name,
-            original: package_name
-          )
+            results << Variant.new(
+              name: full_name,
+              algorithm: algorithm.name,
+              original: package_name
+            )
+          end
         end
       end
 

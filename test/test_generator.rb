@@ -76,7 +76,7 @@ class TestGenerator < Minitest::Test
     package_variants = variants.select { |v| v.name.start_with?("monolog/") && v.name != "monolog/monolog" }
 
     assert vendor_variants.length > 0, "Should generate vendor typosquats"
-    assert package_variants.length > 0, "Should generate package typosquats"
+    assert_equal 0, package_variants.length, "Should not generate package typosquats within same vendor"
   end
 
   def test_generates_owner_variants_for_golang
@@ -87,7 +87,7 @@ class TestGenerator < Minitest::Test
     repo_variants = variants.select { |v| v.name.start_with?("github.com/gorilla/") }
 
     assert owner_variants.length > 0, "Should generate owner typosquats"
-    assert repo_variants.length > 0, "Should generate repo typosquats"
+    assert_equal 0, repo_variants.length, "Should not generate repo typosquats within same owner"
   end
 
   def test_generates_scope_variants_for_npm
@@ -98,7 +98,7 @@ class TestGenerator < Minitest::Test
     package_variants = variants.select { |v| v.name.start_with?("@angular/") }
 
     assert scope_variants.length > 0, "Should generate scope typosquats"
-    assert package_variants.length > 0, "Should generate package typosquats"
+    assert_equal 0, package_variants.length, "Should not generate package typosquats within same scope"
   end
 
   def test_non_namespaced_npm_packages_work

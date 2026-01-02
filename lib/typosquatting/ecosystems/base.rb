@@ -40,6 +40,10 @@ module Typosquatting
         false
       end
 
+      def namespace_controls_members?
+        true
+      end
+
       def parse_namespace(name)
         [nil, name]
       end
