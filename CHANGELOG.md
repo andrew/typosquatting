@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-02
+
+- Skip intra-namespace typosquats for scoped packages (npm, composer, golang) since namespace owners control all packages under their namespace
+- Add Dockerfile for running without Ruby installed
+
 ## [0.3.0] - 2025-12-17
 
 - Add `discover` command to find existing similar packages by edit distance using prefix/postfix API
