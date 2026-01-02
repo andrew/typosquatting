@@ -31,6 +31,19 @@ Or add to your Gemfile:
 gem "typosquatting"
 ```
 
+Or run with Docker:
+
+```bash
+docker build -t typosquatting .
+docker run --rm typosquatting generate requests -e pypi
+```
+
+For commands that read local files (like `sbom`), mount your directory:
+
+```bash
+docker run --rm -v $PWD:/src typosquatting sbom /src/bom.json
+```
+
 ## CLI Usage
 
 ```bash
