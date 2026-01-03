@@ -47,6 +47,39 @@ module Typosquatting
       package_names.map { |name| results.find { |n, _| n == name }&.last }
     end
 
+    def bulk_lookup(package_names)
+      return [] if package_names.empty?
+
+      purls = package_names.map { |name| build_purl(name).to_s }
+
+      all_packages = []
+      purls.each_slice(100) do |batch|
+        response = post_json("/packages/bulk_lookup", { purls: batch })
+        all_packages.concat(response || [])
+      end
+
+      packages_by_purl = {}
+      all_packages.each do |pkg|
+        purl = pkg["purl"]
+        next unless purl
+
+        packages_by_purl[purl] ||= []
+        packages_by_purl[purl] << pkg
+      end
+
+      package_names.map do |name|
+        purl = build_purl(name).to_s
+        packages = packages_by_purl[purl] || []
+
+        Result.new(
+          name: name,
+          purl: purl,
+          packages: packages,
+          ecosystem: ecosystem.purl_type
+        )
+      end
+    end
+
     def registries
       response = fetch("/registries?ecosystem=#{URI.encode_www_form_component(ecosystem.purl_type)}")
       response&.map { |r| Registry.new(r) } || []
@@ -228,6 +261,32 @@ module Typosquatting
       request = Net::HTTP::Get.new(uri)
       request["User-Agent"] = USER_AGENT
       request["Accept"] = "application/json"
+
+      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+        http.request(request)
+      end
+
+      case response
+      when Net::HTTPSuccess
+        JSON.parse(response.body)
+      when Net::HTTPNotFound
+        []
+      else
+        raise APIError, "API request failed: #{response.code} #{response.message}"
+      end
+    rescue StandardError => e
+      raise APIError, "API request failed: #{e.message}" unless e.is_a?(APIError)
+
+      raise
+    end
+
+    def post_json(path, body)
+      uri = URI("#{API_BASE}#{path}")
+      request = Net::HTTP::Post.new(uri)
+      request["User-Agent"] = USER_AGENT
+      request["Accept"] = "application/json"
+      request["Content-Type"] = "application/json"
+      request.body = JSON.generate(body)
 
       response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
         http.request(request)
