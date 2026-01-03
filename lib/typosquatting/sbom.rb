@@ -79,20 +79,23 @@ module Typosquatting
       lookup = Lookup.new(ecosystem: ecosystem)
 
       variants = generator.generate(package_name)
-      suspicions = []
+      return [] if variants.empty?
 
-      variants.each do |variant|
-        result = lookup.check(variant.name)
-        next unless result.exists?
+      variant_names = variants.map(&:name)
+      results = lookup.bulk_lookup(variant_names)
 
-        suspicions << Suspicion.new(
+      results_by_name = results.to_h { |r| [r.name, r] }
+
+      variants.filter_map do |variant|
+        result = results_by_name[variant.name]
+        next unless result&.exists?
+
+        Suspicion.new(
           name: variant.name,
           algorithm: variant.algorithm,
           registries: result.registries
         )
       end
-
-      suspicions
     end
   end
 end
