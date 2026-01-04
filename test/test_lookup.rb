@@ -198,6 +198,69 @@ class TestLookup < Minitest::Test
     assert_equal 1, names.length
   end
 
+  def test_bulk_lookup_returns_results_for_existing_packages
+    stub_request(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
+      .with(body: { purls: ["pkg:pypi/requests", "pkg:pypi/reqests"] }.to_json)
+      .to_return(
+        status: 200,
+        body: [
+          { "purl" => "pkg:pypi/requests", "name" => "requests", "registry" => { "name" => "pypi.org" } }
+        ].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    results = @lookup.bulk_lookup(["requests", "reqests"])
+
+    assert_equal 2, results.length
+    assert results[0].exists?
+    assert_equal "requests", results[0].name
+    refute results[1].exists?
+  end
+
+  def test_bulk_lookup_handles_empty_array
+    results = @lookup.bulk_lookup([])
+    assert_empty results
+  end
+
+  def test_bulk_lookup_batches_over_100_packages
+    package_names = (1..150).map { |i| "package#{i}" }
+    first_batch_purls = package_names[0..99].map { |n| "pkg:pypi/#{n}" }
+    second_batch_purls = package_names[100..149].map { |n| "pkg:pypi/#{n}" }
+
+    stub_request(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
+      .with(body: { purls: first_batch_purls }.to_json)
+      .to_return(
+        status: 200,
+        body: [{ "purl" => "pkg:pypi/package1", "name" => "package1", "registry" => { "name" => "pypi.org" } }].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    stub_request(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
+      .with(body: { purls: second_batch_purls }.to_json)
+      .to_return(
+        status: 200,
+        body: [{ "purl" => "pkg:pypi/package101", "name" => "package101", "registry" => { "name" => "pypi.org" } }].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    results = @lookup.bulk_lookup(package_names)
+
+    assert_equal 150, results.length
+    assert results[0].exists?
+    assert results[100].exists?
+    refute results[1].exists?
+  end
+
+  def test_bulk_lookup_includes_user_agent
+    stub_request(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
+      .with(headers: { "User-Agent" => /typosquatting-ruby/ })
+      .to_return(status: 200, body: "[]", headers: { "Content-Type" => "application/json" })
+
+    @lookup.bulk_lookup(["test"])
+
+    assert_requested(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
+  end
+
   def test_levenshtein_distance
     assert_equal 0, @lookup.levenshtein("test", "test")
     assert_equal 1, @lookup.levenshtein("test", "tests")

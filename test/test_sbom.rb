@@ -74,7 +74,7 @@ class TestSBOM < Minitest::Test
     file.write(JSON.generate(sbom_data))
     file.close
 
-    stub_request(:get, /packages.ecosyste.ms/)
+    stub_request(:post, "https://packages.ecosyste.ms/api/v1/packages/bulk_lookup")
       .to_return(
         status: 200,
         body: [].to_json,
