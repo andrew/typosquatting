@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.5.1] - 2026-01-04
+
 - Filter duplicate packages in SBOM checking to avoid redundant results and API calls
 
 ## [0.5.0] - 2026-01-04
