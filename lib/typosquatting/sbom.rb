@@ -12,7 +12,27 @@ module Typosquatting
     end
 
     def check
+      unique_packages = extract_unique_packages
       results = []
+
+      unique_packages.each do |key, pkg_info|
+        suspicions = find_typosquat_matches(pkg_info[:name], pkg_info[:ecosystem])
+        next if suspicions.empty?
+
+        results << SBOMResult.new(
+          name: pkg_info[:name],
+          version: nil,
+          ecosystem: pkg_info[:ecosystem_type],
+          purl: pkg_info[:purl],
+          suspicions: suspicions
+        )
+      end
+
+      results
+    end
+
+    def extract_unique_packages
+      packages = {}
 
       sbom.packages.each do |pkg|
         purl_string = extract_purl(pkg)
@@ -31,19 +51,17 @@ module Typosquatting
         end
 
         package_name = purl.namespace ? "#{purl.namespace}/#{purl.name}" : purl.name
-        suspicions = find_typosquat_matches(package_name, ecosystem)
-        next if suspicions.empty?
+        key = "#{purl.type}:#{package_name}"
 
-        results << SBOMResult.new(
+        packages[key] ||= {
           name: package_name,
-          version: purl.version,
-          ecosystem: purl.type,
-          purl: purl_string,
-          suspicions: suspicions
-        )
+          ecosystem: ecosystem,
+          ecosystem_type: purl.type,
+          purl: purl_string
+        }
       end
 
-      results
+      packages
     end
 
     SBOMResult = Struct.new(:name, :version, :ecosystem, :purl, :suspicions, keyword_init: true) do

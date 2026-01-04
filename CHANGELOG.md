@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Filter duplicate packages in SBOM checking to avoid redundant results and API calls
+
 ## [0.5.0] - 2026-01-04
 
 - Add bulk lookup for SBOM checking to reduce API calls

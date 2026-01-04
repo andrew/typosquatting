@@ -89,6 +89,79 @@ class TestSBOM < Minitest::Test
     file.unlink
   end
 
+  def test_deduplicates_packages_by_name_and_ecosystem
+    sbom_data = {
+      "bomFormat" => "CycloneDX",
+      "specVersion" => "1.4",
+      "components" => [
+        {
+          "type" => "library",
+          "name" => "minipass",
+          "version" => "3.3.6",
+          "purl" => "pkg:npm/minipass@3.3.6"
+        },
+        {
+          "type" => "library",
+          "name" => "minipass",
+          "version" => "5.0.0",
+          "purl" => "pkg:npm/minipass@5.0.0"
+        },
+        {
+          "type" => "library",
+          "name" => "minipass",
+          "version" => "7.0.0",
+          "purl" => "pkg:npm/minipass@7.0.0"
+        }
+      ]
+    }
+
+    file = Tempfile.new(["test", ".json"])
+    file.write(JSON.generate(sbom_data))
+    file.close
+
+    checker = Typosquatting::SBOMChecker.new(file.path)
+    unique_packages = checker.extract_unique_packages
+
+    assert_equal 1, unique_packages.length
+    assert_equal "minipass", unique_packages.values.first[:name]
+
+    file.unlink
+  end
+
+  def test_deduplicates_same_package_across_different_ecosystems
+    sbom_data = {
+      "bomFormat" => "CycloneDX",
+      "specVersion" => "1.4",
+      "components" => [
+        {
+          "type" => "library",
+          "name" => "requests",
+          "version" => "2.28.0",
+          "purl" => "pkg:pypi/requests@2.28.0"
+        },
+        {
+          "type" => "library",
+          "name" => "requests",
+          "version" => "1.0.0",
+          "purl" => "pkg:npm/requests@1.0.0"
+        }
+      ]
+    }
+
+    file = Tempfile.new(["test", ".json"])
+    file.write(JSON.generate(sbom_data))
+    file.close
+
+    checker = Typosquatting::SBOMChecker.new(file.path)
+    unique_packages = checker.extract_unique_packages
+
+    assert_equal 2, unique_packages.length
+    assert unique_packages.key?("pypi:requests")
+    assert unique_packages.key?("npm:requests")
+
+    file.unlink
+  end
+
   def test_sbom_result_struct
     result = Typosquatting::SBOMChecker::SBOMResult.new(
       name: "reqests",
