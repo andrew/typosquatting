@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-04
+
+- Add bulk lookup for SBOM checking to reduce API calls
+- Test against Ruby 3.4 and 4.0 in CI
+
 ## [0.4.0] - 2026-01-02
 
 - Skip intra-namespace typosquats for scoped packages (npm, composer, golang) since namespace owners control all packages under their namespace
