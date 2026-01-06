@@ -324,6 +324,7 @@ module Typosquatting
     end
 
     def format_status(result)
+      return result.status.upcase if result.status == "removed"
       return "available" unless result.exists?
       return result.status.upcase if result.status
 

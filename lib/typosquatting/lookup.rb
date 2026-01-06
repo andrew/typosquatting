@@ -200,7 +200,9 @@ module Typosquatting
 
     Result = Struct.new(:name, :purl, :packages, :ecosystem, keyword_init: true) do
       def exists?
-        !packages.empty?
+        return false if packages.empty?
+
+        status != "removed"
       end
 
       def status

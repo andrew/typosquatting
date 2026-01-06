@@ -40,7 +40,7 @@ class TestLookup < Minitest::Test
     assert_nil result.status
   end
 
-  def test_check_returns_status_for_security_placeholder
+  def test_check_returns_false_for_removed_package
     stub_request(:get, "https://packages.ecosyste.ms/api/v1/packages/lookup?purl=pkg:pypi/malicious-pkg")
       .to_return(
         status: 200,
@@ -55,7 +55,7 @@ class TestLookup < Minitest::Test
 
     result = @lookup.check("malicious-pkg")
 
-    assert result.exists?
+    refute result.exists?
     assert_equal "removed", result.status
   end
 
