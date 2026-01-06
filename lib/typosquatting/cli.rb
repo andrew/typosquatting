@@ -291,22 +291,24 @@ module Typosquatting
       case options[:format]
       when "json"
         data = results.map do |r|
-          {
+          hash = {
             name: r[:variant].name,
             algorithm: r[:variant].algorithm,
             exists: r[:result].exists?,
             registries: r[:result].registries
           }
+          hash[:status] = r[:result].status if r[:result].status
+          hash
         end
         puts JSON.pretty_generate(data)
       when "csv"
-        puts "name,algorithm,exists,registries"
+        puts "name,algorithm,exists,status,registries"
         results.each do |r|
-          puts "#{r[:variant].name},#{r[:variant].algorithm},#{r[:result].exists?},\"#{r[:result].registries.join("; ")}\""
+          puts "#{r[:variant].name},#{r[:variant].algorithm},#{r[:result].exists?},#{r[:result].status},\"#{r[:result].registries.join("; ")}\""
         end
       else
         results.each do |r|
-          status = r[:result].exists? ? "EXISTS" : "available"
+          status = format_status(r[:result])
           if options[:verbose]
             puts "#{r[:variant].name} (#{r[:variant].algorithm}) - #{status}"
             puts "  registries: #{r[:result].registries.join(", ")}" if r[:result].exists?
@@ -319,6 +321,13 @@ module Typosquatting
         existing = results.count { |r| r[:result].exists? }
         puts "Checked #{results.length} variants, #{existing} exist"
       end
+    end
+
+    def format_status(result)
+      return "available" unless result.exists?
+      return result.status.upcase if result.status
+
+      "EXISTS"
     end
 
     def output_confusion_results(results, options)

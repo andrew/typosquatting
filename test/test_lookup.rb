@@ -37,6 +37,26 @@ class TestLookup < Minitest::Test
     assert result.exists?
     assert_equal "requests", result.name
     assert_includes result.registries, "pypi.org"
+    assert_nil result.status
+  end
+
+  def test_check_returns_status_for_security_placeholder
+    stub_request(:get, "https://packages.ecosyste.ms/api/v1/packages/lookup?purl=pkg:pypi/malicious-pkg")
+      .to_return(
+        status: 200,
+        body: [{
+          "name" => "malicious-pkg",
+          "registry" => { "name" => "pypi.org" },
+          "status" => "removed",
+          "description" => "security holding package"
+        }].to_json,
+        headers: { "Content-Type" => "application/json" }
+      )
+
+    result = @lookup.check("malicious-pkg")
+
+    assert result.exists?
+    assert_equal "removed", result.status
   end
 
   def test_check_returns_result_for_nonexistent_package

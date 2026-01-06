@@ -203,6 +203,10 @@ module Typosquatting
         !packages.empty?
       end
 
+      def status
+        packages.map { |p| p["status"] }.compact.first
+      end
+
       def registries
         packages.map { |p| p.dig("registry", "name") }.compact.uniq
       end
@@ -212,6 +216,7 @@ module Typosquatting
           name: name,
           purl: purl,
           exists: exists?,
+          status: status,
           registries: registries,
           packages: packages
         }
