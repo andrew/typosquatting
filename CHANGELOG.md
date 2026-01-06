@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.5.2] - 2026-01-06
+
+- Exclude removed/unpublished packages from typosquat detection (fixes false positives for reserved names)
+
 ## [0.5.1] - 2026-01-04
 
 - Filter duplicate packages in SBOM checking to avoid redundant results and API calls
